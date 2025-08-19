@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Trabalhistas (v1.8.2)
+// @name         Filtros Rápidos para NEs Trabalhistas (v1.9.0)
 // @namespace    http://tampermonkey.net/
-// @version      1.8.2
-// @description  Adiciona botões de filtro que grudam no topo da página. Botão de rolagem removido.
+// @version      1.9.0
+// @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
 // @author       Paulo (modificado por Gemini)
 // @match        *://parla.pge.reders/app/nes_trab*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=pge.rs.gov.br
@@ -16,7 +16,9 @@
 
     /**
      * Script para adicionar botões de filtro rápido.
-     * VERSÃO 1.8.2 - Removido o botão de rolagem para o topo.
+     * VERSÃO 1.9.0
+     * - Adicionado destaque para o botão do filtro ativo.
+     * - Clicar em um filtro ativo agora limpa a busca (função toggle).
      */
 
     const filters = [
@@ -33,7 +35,7 @@
     ];
 
     const customCSS = `
-        <style id="custom-filter-styles-v18-2">
+        <style id="custom-filter-styles-v19">
             #custom-filters-container {
                 position: sticky;
                 top: 0;
@@ -49,25 +51,36 @@
             .custom-filter-btn {
                 display: inline-flex; justify-content: space-between; align-items: center;
                 gap: 8px; background-color: #4B5563; color: #F3F4F6;
-                border: none; padding: 5px 8px; font-size: 0.8rem;
+                border: 1px solid transparent; /* Adicionado para evitar pulo no hover/active */
+                padding: 5px 8px; font-size: 0.8rem;
                 font-weight: 500; border-radius: 0.375rem;
-                transition: background-color 0.15s ease-in-out;
+                transition: all 0.15s ease-in-out;
                 cursor: pointer; line-height: 1.5; min-width: 100px;
             }
             .custom-filter-btn:hover { background-color: #6B7280; }
+
+            /* NOVO: Estilo para o botão quando o filtro está ativo */
+            .custom-filter-btn.active {
+                background-color: #2563EB;
+                color: #FFFFFF;
+                border-color: #93C5FD;
+                box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
+            }
+
             .count-badge-inside {
                 display: inline-block; padding: 1px 6px; font-size: 0.75rem;
                 font-weight: bold; border-radius: 10px; min-width: 18px;
                 text-align: center; background-color: #374151; color: #6B7280;
+                transition: all 0.15s ease-in-out;
             }
             .count-badge-inside.non-zero { background-color: #3B82F6; color: #FFFFFF; }
-
-            /* Estilos do botão flutuante removidos */
-
+            .custom-filter-btn.active .count-badge-inside {
+                 background-color: #FFFFFF; color: #2563EB;
+            }
         </style>
     `;
-    if (document.getElementById('custom-filter-styles-v18-2')) {
-        document.getElementById('custom-filter-styles-v18-2').remove();
+    if (document.getElementById('custom-filter-styles-v19')) {
+        document.getElementById('custom-filter-styles-v19').remove();
     }
     document.head.insertAdjacentHTML('beforeend', customCSS);
 
@@ -85,7 +98,7 @@
             const buttonWrapper = document.createElement('div');
             buttonWrapper.className = 'my-1 mr-1';
             buttonWrapper.innerHTML = `
-                <button id="btn-${elementId}" class="custom-filter-btn">
+                <button id="btn-${elementId}" class="custom-filter-btn" data-filter="${filter}">
                     <span>${filter}</span>
                     <span id="count-${elementId}" class="count-badge-inside">0</span>
                 </button>
@@ -99,7 +112,11 @@
             const elementId = filter.replace(/\[|\]|#|\s/g, '');
             document.getElementById(`btn-${elementId}`).addEventListener('click', function() {
                 if (window.myTable && window.myTable.datatable) {
-                    window.myTable.datatable.search(filter).draw();
+                    const table = window.myTable.datatable;
+                    const currentFilter = table.search();
+                    // NOVO: Lógica de toggle - se o filtro já for este, limpa. Senão, aplica.
+                    const newFilter = (currentFilter === filter) ? '' : filter;
+                    table.search(newFilter).draw();
                 }
             });
         });
@@ -119,27 +136,45 @@
                 countBadge.classList.toggle('non-zero', count > 0);
             }
         });
-        table.search(originalSearchTerm);
+        table.search(originalSearchTerm); // Restaura a busca original
     }
 
-    // --- FUNÇÃO "createAndManageScrollButton" REMOVIDA ---
+    /**
+     * NOVO: Função para atualizar o estado visual (ativo/inativo) dos botões
+     */
+    function updateActiveButtonState() {
+        if (!window.myTable || !window.myTable.datatable) return;
+        const currentFilter = window.myTable.datatable.search();
+
+        filters.forEach(filter => {
+            const elementId = filter.replace(/\[|\]|#|\s/g, '');
+            const button = document.getElementById(`btn-${elementId}`);
+            if (button) {
+                // Adiciona ou remove a classe 'active' se o filtro do botão for o mesmo da busca
+                button.classList.toggle('active', currentFilter === filter);
+            }
+        });
+    }
+
 
     // --- Execução ---
-    // A chamada para criar o botão de rolagem foi removida daqui.
-
     const observer = new MutationObserver(function (mutations, obs) {
         if (document.getElementById('tabela_wrapper')) {
             if (window.myTable && window.myTable.datatable) {
                 const table = window.myTable.datatable;
-                table.off('draw.dt');
+                table.off('draw.dt'); // Evita múltiplos listeners
                 table.on('draw.dt', function() {
-                    createAndInsertButtons();
+                    // Funções que rodam a cada redesenho da tabela
                     updateFilterCounts();
+                    updateActiveButtonState(); // NOVO: Atualiza destaque do botão
                 });
+
+                // Execução inicial
                 createAndInsertButtons();
                 updateFilterCounts();
+                updateActiveButtonState(); // NOVO: Define o estado inicial do botão
             }
-            obs.disconnect();
+            obs.disconnect(); // Para de observar após encontrar e configurar a tabela
         }
     });
 
