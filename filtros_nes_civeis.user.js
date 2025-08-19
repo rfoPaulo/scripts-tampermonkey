@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Filtros Rápidos para NEs Cíveis
 // @namespace    http://tampermonkey.net/
-// @version      2.1.2
+// @version      2.1.3
 // @description  Adiciona botões de filtro. O botão do filtro ativo fica destacado e funciona como toggle. Adicionado espaçamento para agrupar filtros.
 // @author       Paulo (modificado por Gemini)
 // @match        *://parla.pge.reders/app/nes_civeis*
@@ -61,7 +61,7 @@
 
             /* NOVO: Estilo para o botão quando o filtro está ativo */
             .custom-filter-btn.active {
-                background-color: #006400; /* Tom de verde escuro */
+                background-color: #047857; /* Tom de verde escuro */
                 color: #FFFFFF;
                 border-color: #34D399;
                 box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
@@ -74,12 +74,12 @@
                 transition: all 0.15s ease-in-out;
             }
             .count-badge-inside.non-zero {
-                background-color: #478F47; /* Tom de verde */
+                background-color: #059669; /* Tom de verde */
                 color: #FFFFFF;
             }
             /* NOVO: Inverte as cores do contador quando o botão está ativo */
             .custom-filter-btn.active .count-badge-inside {
-                 background-color: #FFFFFF; color: #006400;
+                 background-color: #FFFFFF; color: #047857;
             }
         </style>
     `;
@@ -104,7 +104,7 @@
 
             // MELHORIA: Adiciona margem à esquerda para criar separação de grupo
             if (filter === '[f] audiencia') {
-                buttonWrapper.style.marginLeft = '20px';
+                buttonWrapper.style.marginLeft = '16px';
             }
 
             buttonWrapper.innerHTML = `
@@ -193,5 +193,3 @@
     });
 
 })();
-
-
