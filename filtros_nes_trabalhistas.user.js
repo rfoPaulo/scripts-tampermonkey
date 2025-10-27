@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Trabalhistas (v1.9.2)
+// @name         Filtros Rápidos para NEs Trabalhistas (v1.9.3)
 // @namespace    http://tampermonkey.net/
 // @version      1.9.3
 // @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
@@ -185,6 +185,7 @@
     });
 
 })();
+
 
 
 
