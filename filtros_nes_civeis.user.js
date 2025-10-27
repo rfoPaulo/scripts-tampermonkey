@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Cíveis
+// @name         Filtros Rápidos para NEs Cíveis (v2.2)
 // @namespace    http://tampermonkey.net/
-// @version      2.1.3
+// @version      2.2
 // @description  Adiciona botões de filtro. O botão do filtro ativo fica destacado e funciona como toggle. Adicionado espaçamento para agrupar filtros.
 // @author       Paulo (modificado por Gemini)
 // @match        *://parla.pge.reders/app/nes_civeis*
@@ -16,10 +16,8 @@
 
     /**
      * Script para adicionar botões de filtro rápido na página 'nes_civeis'.
-     * VERSÃO 2.1
-     * - Adicionado destaque para o botão do filtro ativo (em verde).
-     * - Clicar em um filtro ativo agora limpa a busca (função toggle).
-     * - Adicionado espaçamento visual para criar grupos de botões.
+     * VERSÃO 2.2
+     * - Recria barra de filtro rápido ao mudar o dia buscado
      */
 
     const filters = [
@@ -174,6 +172,7 @@
                 table.off('draw.dt'); // Evita múltiplos listeners
                 table.on('draw.dt', function() {
                     // Funções que rodam a cada redesenho da tabela
+                    createAndInsertButtons();
                     updateFilterCounts();
                     updateActiveButtonState(); // NOVO: Atualiza destaque do botão
                 });
@@ -193,3 +192,4 @@
     });
 
 })();
+
