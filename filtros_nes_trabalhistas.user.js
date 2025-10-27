@@ -51,9 +51,9 @@
 
             .custom-filter-btn {
                 display: inline-flex; justify-content: space-between; align-items: center;
-                gap: 8px; background-color: #4B5563; color: #F3F4F6;
+                gap: 4px; background-color: #4B5563; color: #F3F4F6;
                 border: 1px solid transparent; /* Adicionado para evitar pulo no hover/active */
-                padding: 5px 8px; font-size: 0.8rem;
+                padding: 3px 5px; font-size: 0.75rem;
                 font-weight: 500; border-radius: 0.375rem;
                 transition: all 0.15s ease-in-out;
                 cursor: pointer; line-height: 1.5; min-width: 100px;
@@ -186,5 +186,6 @@
     });
 
 })();
+
 
 
