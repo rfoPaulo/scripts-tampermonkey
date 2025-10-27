@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Filtros Rápidos para NEs Trabalhistas (v1.9.2)
 // @namespace    http://tampermonkey.net/
-// @version      1.9.2
+// @version      1.9.3
 // @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
 // @author       Paulo (modificado por Gemini)
 // @match        *://parla.pge.reders/app/nes_trab*
@@ -16,9 +16,8 @@
 
     /**
      * Script para adicionar botões de filtro rápido.
-     * VERSÃO 1.9.2
-     * - Recria os filtros rápidos.
-     * - Adicionado CEEE-PAR.
+     * VERSÃO 1.9.3
+     * - Melhorias visuais
      */
 
     const filters = [
@@ -186,6 +185,7 @@
     });
 
 })();
+
 
 
 
