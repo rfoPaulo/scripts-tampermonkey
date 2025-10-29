@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Trabalhistas (v2.0)
+// @name         Filtros Rápidos para NEs Trabalhistas (v2.1)
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
 // @author       Paulo
 // @match        *://parla.pge.reders/app/nes_trab*
@@ -16,9 +16,8 @@
 
     /**
      * Script para adicionar botões de filtro rápido.
-     * VERSÃO 2.0
-     * - int[CEEE
-     * - [ELETRICA PARTICIPACOES]
+     * VERSÃO 2.1
+     * - cores MARK
      */
 
     const filters = [
@@ -157,7 +156,41 @@
             }
         });
     }
+// --- INÍCIO DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
 
+    // 1. Mapa de cores por TÍTULO
+    const titleColorMap = {
+      "Representação Integral": "#90EE90",       // Verde claro
+      "Representação Extraordinária": "#DDA0DD", // Roxo claro
+      "Entidade Extinta": "#F08080"        // Vermelho claro
+    };
+    
+    // 2. Cor para o TEXTO específico
+    const textToFind = 'DE 2025';
+    const textColor = '#FF7F50'; // Coral (como solicitado)
+    
+    /**
+     * Aplica cores personalizadas às tags <mark> dentro da tabela
+     */
+    function aplicarCoresMark() {
+        // Seleciona apenas as tags <mark> dentro da tabela para melhor performance
+        document.querySelectorAll('#tabela mark').forEach(mark => {
+            
+            // 4. Verifica o texto primeiro
+            if (mark.innerText.trim() === textToFind) {
+                mark.style.backgroundColor = textColor;
+            } 
+            // 5. Se não for, verifica o title
+            else {
+                const titleColor = titleColorMap[mark.title];
+                if (titleColor) {
+                    mark.style.backgroundColor = titleColor;
+                }
+            }
+        });
+    }
+
+    // --- FIM DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
 
     // --- Execução ---
     const observer = new MutationObserver(function (mutations, obs) {
@@ -170,12 +203,18 @@
                     createAndInsertButtons();
                     updateFilterCounts();
                     updateActiveButtonState(); // NOVO: Atualiza destaque do botão
+                    // --- INÍCIO DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
+                    aplicarCoresMark();
+                    // --- FIM DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
                 });
 
                 // Execução inicial
                 createAndInsertButtons();
                 updateFilterCounts();
                 updateActiveButtonState(); // NOVO: Define o estado inicial do botão
+                // --- INÍCIO DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
+                    aplicarCoresMark();
+                    // --- FIM DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
             }
             obs.disconnect(); // Para de observar após encontrar e configurar a tabela
         }
@@ -187,6 +226,7 @@
     });
 
 })();
+
 
 
 
