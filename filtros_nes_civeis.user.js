@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Cíveis (v2.2)
+// @name         Filtros Rápidos para NEs Cíveis (v2.3)
 // @namespace    http://tampermonkey.net/
-// @version      2.2
+// @version      2.3
 // @description  Adiciona botões de filtro. O botão do filtro ativo fica destacado e funciona como toggle. Adicionado espaçamento para agrupar filtros.
 // @author       Paulo (modificado por Gemini)
 // @match        *://parla.pge.reders/app/nes_civeis*
@@ -16,8 +16,8 @@
 
     /**
      * Script para adicionar botões de filtro rápido na página 'nes_civeis'.
-     * VERSÃO 2.2
-     * - Recria barra de filtro rápido ao mudar o dia buscado
+     * VERSÃO 2.3
+     * - Cores Mark
      */
 
     const filters = [
@@ -164,6 +164,42 @@
         });
     }
 
+    // --- INÍCIO DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
+
+    // 1. Mapa de cores por TÍTULO
+    const titleColorMap = {
+      "Representação Integral": "#90EE90",       // Verde claro
+      "Representação Extraordinária": "#DDA0DD", // Roxo claro
+      "Entidade Extinta": "#F08080"        // Vermelho claro
+    };
+    
+    // 2. Cor para o TEXTO específico
+    const textToFind = 'DE 2025';
+    const textColor = '#FF7F50'; // Coral (como solicitado)
+    
+    /**
+     * Aplica cores personalizadas às tags <mark> dentro da tabela
+     */
+    function aplicarCoresMark() {
+        // Seleciona apenas as tags <mark> dentro da tabela para melhor performance
+        document.querySelectorAll('#tabela mark').forEach(mark => {
+            
+            // 4. Verifica o texto primeiro
+            if (mark.innerText.trim() === textToFind) {
+                mark.style.backgroundColor = textColor;
+            } 
+            // 5. Se não for, verifica o title
+            else {
+                const titleColor = titleColorMap[mark.title];
+                if (titleColor) {
+                    mark.style.backgroundColor = titleColor;
+                }
+            }
+        });
+    }
+
+    // --- FIM DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
+
 
     const observer = new MutationObserver(function (mutations, obs) {
         if (document.getElementById('tabela_wrapper')) {
@@ -175,12 +211,18 @@
                     createAndInsertButtons();
                     updateFilterCounts();
                     updateActiveButtonState(); // NOVO: Atualiza destaque do botão
+                    // --- INÍCIO DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
+                    aplicarCoresMark();
+                    // --- FIM DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
                 });
 
                 // Execução inicial
                 createAndInsertButtons();
                 updateFilterCounts();
                 updateActiveButtonState(); // NOVO: Define o estado inicial do botão
+                // --- INÍCIO DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
+                aplicarCoresMark();
+                // --- FIM DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
             }
             obs.disconnect(); // Para de observar após encontrar e configurar a tabela
         }
@@ -192,4 +234,5 @@
     });
 
 })();
+
 
