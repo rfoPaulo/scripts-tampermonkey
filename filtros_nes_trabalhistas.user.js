@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Trabalhistas (v2.1)
+// @name         Filtros Rápidos para NEs Trabalhistas (v2.1.1)
 // @namespace    http://tampermonkey.net/
-// @version      2.1
+// @version      2.1.1
 // @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
 // @author       Paulo
 // @match        *://parla.pge.reders/app/nes_trab*
@@ -16,8 +16,9 @@
 
     /**
      * Script para adicionar botões de filtro rápido.
-     * VERSÃO 2.1
-     * - cores MARK
+     * VERSÃO 2.1.1
+     * - menos min-width btn
+     * - menos gap btn
      */
 
     const filters = [
@@ -51,12 +52,12 @@
 
             .custom-filter-btn {
                 display: inline-flex; justify-content: space-between; align-items: center;
-                gap: 4px; background-color: #4B5563; color: #F3F4F6;
+                gap: 3px; background-color: #4B5563; color: #F3F4F6;
                 border: 1px solid transparent; /* Adicionado para evitar pulo no hover/active */
                 padding: 3px 5px; font-size: 0.7rem;
                 font-weight: 500; border-radius: 0.375rem;
                 transition: all 0.15s ease-in-out;
-                cursor: pointer; line-height: 1.5; min-width: 75px;
+                cursor: pointer; line-height: 1.5; min-width: 50px;
             }
             .custom-filter-btn:hover { background-color: #6B7280; }
 
@@ -226,6 +227,7 @@
     });
 
 })();
+
 
 
 
