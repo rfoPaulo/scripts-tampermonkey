@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Trabalhistas (v2.1.1)
+// @name         Filtros Rápidos para NEs Trabalhistas (v2.1.2)
 // @namespace    http://tampermonkey.net/
-// @version      2.1.1
+// @version      2.1.2
 // @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
 // @author       Paulo
 // @match        *://parla.pge.reders/app/nes_trab*
@@ -16,9 +16,8 @@
 
     /**
      * Script para adicionar botões de filtro rápido.
-     * VERSÃO 2.1.1
-     * - menos min-width btn
-     * - menos gap btn
+     * VERSÃO 2.1.2
+     * - destaque em diários dif de trt4
      */
 
     const filters = [
@@ -192,6 +191,53 @@
     }
 
     // --- FIM DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
+    
+    // --- NOVA LÓGICA: DESTAQUE TEXTO COLUNA DIÁRIO ---
+    function destacarDiariosAtipicos() {
+        const table = document.getElementById('tabela');
+        if (!table) return;
+
+        // 1. Encontrar o índice da coluna "Diário"
+        let diarioIndex = -1;
+        const headers = table.querySelectorAll('thead th');
+        headers.forEach((th, index) => {
+            if (th.innerText.trim() === 'Diário') {
+                diarioIndex = index;
+            }
+        });
+
+        // Se não achar a coluna, sai da função
+        if (diarioIndex === -1) return;
+
+        // 2. Varrer as linhas visíveis
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            if (row.cells.length > diarioIndex) {
+                const cell = row.cells[diarioIndex];
+                const text = cell.innerText.trim();
+
+                // 3. Verifica se é diferente do padrão
+                if (text !== '[TRT4]' && text !== '[TRT4DJEN]') {
+                    
+                    // Verifica se já não aplicamos (para evitar duplicação em redraws rápidos)
+                    // O DataTables geralmente reseta o HTML, mas é uma segurança.
+                    if (!cell.querySelector('.diario-alert')) {
+                        cell.innerHTML = `
+                            <span class="diario-alert" style="
+                                background-color: #ffcccc; 
+                                color: #8b0000; 
+                                font-weight: bold; 
+                                padding: 2px 4px; 
+                                border-radius: 4px;
+                            ">
+                                ${text}
+                            </span>
+                        `;
+                    }
+                }
+            }
+        });
+    }
 
     // --- Execução ---
     const observer = new MutationObserver(function (mutations, obs) {
@@ -203,19 +249,17 @@
                     // Funções que rodam a cada redesenho da tabela                    
                     createAndInsertButtons();
                     updateFilterCounts();
-                    updateActiveButtonState(); // NOVO: Atualiza destaque do botão
-                    // --- INÍCIO DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
+                    updateActiveButtonState(); 
                     aplicarCoresMark();
-                    // --- FIM DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
+                    destacarDiariosAtipicos();
                 });
 
                 // Execução inicial
                 createAndInsertButtons();
                 updateFilterCounts();
-                updateActiveButtonState(); // NOVO: Define o estado inicial do botão
-                // --- INÍCIO DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
-                    aplicarCoresMark();
-                    // --- FIM DA ADIÇÃO: CHAMADA DA FUNÇÃO ---
+                updateActiveButtonState(); 
+                aplicarCoresMark();
+                destacarDiariosAtipicos();
             }
             obs.disconnect(); // Para de observar após encontrar e configurar a tabela
         }
@@ -227,6 +271,7 @@
     });
 
 })();
+
 
 
 
