@@ -162,12 +162,16 @@
     const titleColorMap = {
       "Representação Integral": "#90EE90",       // Verde claro
       "Representação Extraordinária": "#DDA0DD", // Roxo claro
-      "Entidade Extinta": "#F08080"        // Vermelho claro
+      "Entidade Extinta": "#F08080"              // Vermelho claro
     };
     
-    // 2. Cor para o TEXTO específico
-    const textToFind = 'DE 2025';
-    const textColor = '#FF7F50'; // Coral (como solicitado)
+    // 2. Mapa de cores por TEXTO específico (Fundo e Fonte)
+    const textConfigMap = {
+        'DE 2026': { bg: '#FF7F50', color: '' },       // Fundo Coral, sem alterar a cor da fonte
+        '|||':     { bg: '#000000', color: '#FFFFFF' }, // Fundo Preto, fonte Branca
+        'INTIMADO(S) / CITADO(S)': { bg: '#000000', color: '#FFFFFF' } // Fundo Preto, fonte Branca
+        
+    };
     
     /**
      * Aplica cores personalizadas às tags <mark> dentro da tabela
@@ -175,10 +179,14 @@
     function aplicarCoresMark() {
         // Seleciona apenas as tags <mark> dentro da tabela para melhor performance
         document.querySelectorAll('#tabela mark').forEach(mark => {
+            const textContent = mark.innerText.trim();
             
-            // 4. Verifica o texto primeiro
-            if (mark.innerText.trim() === textToFind) {
-                mark.style.backgroundColor = textColor;
+            // 4. Verifica o texto primeiro no mapa de configurações
+            if (textConfigMap[textContent]) {
+                mark.style.backgroundColor = textConfigMap[textContent].bg;
+                if (textConfigMap[textContent].color) {
+                    mark.style.color = textConfigMap[textContent].color;
+                }
             } 
             // 5. Se não for, verifica o title
             else {
@@ -271,13 +279,3 @@
     });
 
 })();
-
-
-
-
-
-
-
-
-
-
