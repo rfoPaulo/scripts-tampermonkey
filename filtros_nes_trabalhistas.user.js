@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Filtros Rápidos para NEs Trabalhistas (v2.1.2)
 // @namespace    http://tampermonkey.net/
-// @version      2.1.3
+// @version      2.1.4
 // @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
 // @author       Paulo
 // @match        *://parla.pge.reders/app/nes_trab*
@@ -167,9 +167,9 @@
     
     // 2. Mapa de cores por TEXTO específico (Fundo e Fonte)
     const textConfigMap = {
-        'DE 2026': { bg: '#FF7F50', color: '' },       // Fundo Coral, sem alterar a cor da fonte
-        '|||':     { bg: '#000000', color: '#FFFFFF' }, // Fundo Preto, fonte Branca
-        'INTIMADO(S) / CITADO(S)': { bg: '#000000', color: '#FFFFFF' } // Fundo Preto, fonte Branca
+        'DE 2026': { bg: '#FF7F50', color: '' }//,       // Fundo Coral, sem alterar a cor da fonte
+        //'|||':     { bg: '#000000', color: '#FFFFFF' }, // Fundo Preto, fonte Branca
+        //'INTIMADO(S) / CITADO(S)': { bg: '#000000', color: '#FFFFFF' } // Fundo Preto, fonte Branca
         
     };
     
