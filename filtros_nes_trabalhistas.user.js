@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Trabalhistas (v2.1.5)
+// @name         Filtros Rápidos para NEs Trabalhistas (v2.1.6)
 // @namespace    http://tampermonkey.net/
-// @version      2.1.5
+// @version      2.1.6
 // @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
 // @author       Paulo
 // @match        *://parla.pge.reders/app/nes_trab*
@@ -16,9 +16,10 @@
 
     /**
      * Script para adicionar botões de filtro rápido.
-     * VERSÃO 2.1.5
+     * VERSÃO 2.1.6
      * - destaque em diários dif de trt4
-     * - NOVO: destaque (roxo) do trecho entre "INTIMADO(S) / CITADO(S)" e "|||"
+     * - destaque (roxo) do trecho entre "INTIMADO(S) / CITADO(S)" e "|||"
+     *   (apenas quando AMBOS os marcadores existirem na MESMA célula)
      */
 
     const filters = [
@@ -75,7 +76,7 @@
             .custom-filter-btn.active .count-badge-inside {
                  background-color: #FFFFFF; color: #2563EB;
             }
-            /* NOVO: destaque do trecho INTIMADO(S) / CITADO(S) ... ||| */
+            /* Destaque do trecho INTIMADO(S) / CITADO(S) ... ||| */
             .intimado-highlight {
                 background-color: #7C3AED;  /* Roxo */
                 color: #FFFFFF;
@@ -165,7 +166,7 @@
         });
     }
 
-// --- INÍCIO DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
+    // --- LÓGICA DE CORES <MARK> ---
     // 1. Mapa de cores por TÍTULO
     const titleColorMap = {
       "Representação Integral": "#90EE90",       // Verde claro
@@ -196,9 +197,8 @@
             }
         });
     }
-    // --- FIM DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
 
-    // --- NOVA LÓGICA: DESTAQUE TEXTO COLUNA DIÁRIO ---
+    // --- DESTAQUE TEXTO COLUNA DIÁRIO ---
     function destacarDiariosAtipicos() {
         const table = document.getElementById('tabela');
         if (!table) return;
@@ -238,26 +238,77 @@
         });
     }
 
-    // --- NOVA LÓGICA: DESTAQUE DO TRECHO "INTIMADO(S) / CITADO(S)" ... "|||" ---
+    // --- DESTAQUE DO TRECHO "INTIMADO(S) / CITADO(S)" ... "|||" ---
     const RE_INICIO = /INTIMADO\(S\)\s*\/\s*CITADO\(S\)/i;
     const TERMINADOR = '|||';
 
     /**
      * Envolve o intervalo [start, end) de um nó de texto em um <span> roxo.
-     * Retorna o nó de texto restante (após o trecho destacado) ou null.
      */
     function destacarTrechoNode(node, start, end) {
+        if (end <= start) return;
         const alvo = (start > 0) ? node.splitText(start) : node;
         const tamanho = end - start;
-        let resto = null;
         if (tamanho < alvo.nodeValue.length) {
-            resto = alvo.splitText(tamanho);
+            alvo.splitText(tamanho);
         }
         const span = document.createElement('span');
         span.className = 'intimado-highlight';
         alvo.parentNode.replaceChild(span, alvo);
         span.appendChild(alvo);
-        return resto;
+    }
+
+    /** Coleta os nós de texto ainda não destacados de um elemento */
+    function coletarNosTexto(root) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode: n => (n.parentNode && n.parentNode.closest('.intimado-highlight'))
+                ? NodeFilter.FILTER_REJECT
+                : NodeFilter.FILTER_ACCEPT
+        });
+        const nodes = [];
+        let n;
+        while ((n = walker.nextNode())) nodes.push(n);
+        return nodes;
+    }
+
+    /**
+     * Destaca APENAS quando existirem, na MESMA célula, o termo inicial e o "|||".
+     * Sem o terminador, nada é destacado.
+     */
+    function destacarIntimadosNaCelula(cell) {
+        for (let passada = 0; passada < 10; passada++) {
+            const nodes = coletarNosTexto(cell);
+
+            // 1. Localiza o termo inicial
+            let iIni = -1, offIni = -1;
+            for (let i = 0; i < nodes.length; i++) {
+                const m = nodes[i].nodeValue.match(RE_INICIO);
+                if (m) { iIni = i; offIni = m.index + m[0].length; break; }
+            }
+            if (iIni === -1) return;
+
+            // 2. Localiza o terminador a partir do início (no mesmo nó ou nos seguintes)
+            let iFim = -1, offFim = -1;
+            for (let j = iIni; j < nodes.length; j++) {
+                const busca = (j === iIni) ? offIni : 0;
+                const p = nodes[j].nodeValue.indexOf(TERMINADOR, busca);
+                if (p !== -1) { iFim = j; offFim = p; break; }
+            }
+
+            // Sem terminador -> não destaca nada
+            if (iFim === -1) return;
+
+            // 3. Aplica do fim para o início (evita invalidar offsets dos nós anteriores)
+            if (iFim === iIni) {
+                destacarTrechoNode(nodes[iIni], offIni, offFim);
+            } else {
+                destacarTrechoNode(nodes[iFim], 0, offFim);
+                for (let k = iFim - 1; k > iIni; k--) {
+                    destacarTrechoNode(nodes[k], 0, nodes[k].nodeValue.length);
+                }
+                destacarTrechoNode(nodes[iIni], offIni, nodes[iIni].nodeValue.length);
+            }
+        }
     }
 
     function destacarIntimados() {
@@ -265,59 +316,15 @@
         if (!table) return;
 
         table.querySelectorAll('tbody tr').forEach(row => {
-            // Evita reprocessar linhas já tratadas (DataTables recria o HTML a cada draw)
-            if (row.querySelector('.intimado-highlight')) return;
-
-            // Coleta os nós de texto da linha, na ordem do documento
-            const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT, {
-                acceptNode: n => (n.parentNode && n.parentNode.closest('.intimado-highlight'))
-                    ? NodeFilter.FILTER_REJECT
-                    : NodeFilter.FILTER_ACCEPT
+            Array.prototype.forEach.call(row.cells, cell => {
+                // Evita reprocessar células já tratadas (DataTables recria o HTML a cada draw)
+                if (cell.querySelector('.intimado-highlight')) return;
+                const texto = cell.textContent;
+                // Só processa se a célula tiver o termo inicial E o terminador
+                if (!RE_INICIO.test(texto)) return;
+                if (texto.indexOf(TERMINADOR) === -1) return;
+                destacarIntimadosNaCelula(cell);
             });
-            const nodes = [];
-            let n;
-            while ((n = walker.nextNode())) nodes.push(n);
-
-            let capturando = false;
-
-            for (let i = 0; i < nodes.length; i++) {
-                let node = nodes[i];
-                if (!node.parentNode) continue;
-
-                while (node) {
-                    const texto = node.nodeValue;
-
-                    if (!capturando) {
-                        const m = texto.match(RE_INICIO);
-                        if (!m) break;
-
-                        const inicio = m.index + m[0].length;
-                        const fim = texto.indexOf(TERMINADOR, inicio);
-
-                        if (fim !== -1) {
-                            // Início e fim no mesmo nó
-                            const resto = destacarTrechoNode(node, inicio, fim);
-                            node = resto; // continua procurando novas ocorrências no restante
-                            continue;
-                        } else {
-                            destacarTrechoNode(node, inicio, texto.length);
-                            capturando = true;
-                            break;
-                        }
-                    } else {
-                        const fim = texto.indexOf(TERMINADOR);
-                        if (fim !== -1) {
-                            const resto = destacarTrechoNode(node, 0, fim);
-                            capturando = false;
-                            node = resto; // pode haver outra ocorrência depois do |||
-                            continue;
-                        } else {
-                            destacarTrechoNode(node, 0, texto.length);
-                            break;
-                        }
-                    }
-                }
-            }
         });
     }
 
