@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Filtros Rápidos para NEs Trabalhistas (v2.1.2)
+// @name         Filtros Rápidos para NEs Trabalhistas (v2.1.5)
 // @namespace    http://tampermonkey.net/
-// @version      2.1.4
+// @version      2.1.5
 // @description  Adiciona botões de filtro rápidos que grudam no topo da página. O botão do filtro ativo fica destacado e funciona como toggle (liga/desliga).
 // @author       Paulo
 // @match        *://parla.pge.reders/app/nes_trab*
@@ -16,8 +16,9 @@
 
     /**
      * Script para adicionar botões de filtro rápido.
-     * VERSÃO 2.1.2
+     * VERSÃO 2.1.5
      * - destaque em diários dif de trt4
+     * - NOVO: destaque (roxo) do trecho entre "INTIMADO(S) / CITADO(S)" e "|||"
      */
 
     const filters = [
@@ -48,26 +49,22 @@
                 margin: 1px auto !important;
                 border-radius: 10px;
             }
-
             .custom-filter-btn {
                 display: inline-flex; justify-content: space-between; align-items: center;
                 gap: 3px; background-color: #4B5563; color: #F3F4F6;
-                border: 1px solid transparent; /* Adicionado para evitar pulo no hover/active */
+                border: 1px solid transparent;
                 padding: 3px 5px; font-size: 0.7rem;
                 font-weight: 500; border-radius: 0.375rem;
                 transition: all 0.15s ease-in-out;
                 cursor: pointer; line-height: 1.5; min-width: 50px;
             }
             .custom-filter-btn:hover { background-color: #6B7280; }
-
-            /* NOVO: Estilo para o botão quando o filtro está ativo */
             .custom-filter-btn.active {
                 background-color: #2563EB;
                 color: #FFFFFF;
                 border-color: #93C5FD;
                 box-shadow: 0 0 5px rgba(59, 130, 246, 0.5);
             }
-
             .count-badge-inside {
                 display: inline-block; padding: 1px 6px; font-size: 0.75rem;
                 font-weight: bold; border-radius: 10px; min-width: 10px;
@@ -78,13 +75,26 @@
             .custom-filter-btn.active .count-badge-inside {
                  background-color: #FFFFFF; color: #2563EB;
             }
+            /* NOVO: destaque do trecho INTIMADO(S) / CITADO(S) ... ||| */
+            .intimado-highlight {
+                background-color: #7C3AED;  /* Roxo */
+                color: #FFFFFF;
+                font-weight: 600;
+                padding: 1px 3px;
+                border-radius: 3px;
+            }
+            /* Garante que <mark> dentro do trecho não sobreponha o roxo */
+            .intimado-highlight mark {
+                background-color: transparent !important;
+                color: inherit !important;
+            }
         </style>
     `;
+
     if (document.getElementById('custom-filter-styles-v19')) {
         document.getElementById('custom-filter-styles-v19').remove();
     }
     document.head.insertAdjacentHTML('beforeend', customCSS);
-
 
     function createAndInsertButtons() {
         if (document.getElementById('custom-filters-container')) return;
@@ -94,6 +104,7 @@
         const buttonContainer = document.createElement('div');
         buttonContainer.id = 'custom-filters-container';
         buttonContainer.className = 'd-flex flex-wrap align-items-center';
+
         filters.forEach(filter => {
             const elementId = filter.replace(/\[|\]|#|\s/g, '');
             const buttonWrapper = document.createElement('div');
@@ -115,7 +126,6 @@
                 if (window.myTable && window.myTable.datatable) {
                     const table = window.myTable.datatable;
                     const currentFilter = table.search();
-                    // NOVO: Lógica de toggle - se o filtro já for este, limpa. Senão, aplica.
                     const newFilter = (currentFilter === filter) ? '' : filter;
                     table.search(newFilter).draw();
                 }
@@ -127,6 +137,7 @@
         if (!document.getElementById('custom-filters-container') || !window.myTable || !window.myTable.datatable) return;
         const table = window.myTable.datatable;
         const originalSearchTerm = table.search();
+
         filters.forEach(filterTerm => {
             const elementId = filterTerm.replace(/\[|\]|#|\s/g, '');
             const countId = `count-${elementId}`;
@@ -137,12 +148,10 @@
                 countBadge.classList.toggle('non-zero', count > 0);
             }
         });
+
         table.search(originalSearchTerm); // Restaura a busca original
     }
 
-    /**
-     * NOVO: Função para atualizar o estado visual (ativo/inativo) dos botões
-     */
     function updateActiveButtonState() {
         if (!window.myTable || !window.myTable.datatable) return;
         const currentFilter = window.myTable.datatable.search();
@@ -151,44 +160,34 @@
             const elementId = filter.replace(/\[|\]|#|\s/g, '');
             const button = document.getElementById(`btn-${elementId}`);
             if (button) {
-                // Adiciona ou remove a classe 'active' se o filtro do botão for o mesmo da busca
                 button.classList.toggle('active', currentFilter === filter);
             }
         });
     }
-// --- INÍCIO DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
 
+// --- INÍCIO DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
     // 1. Mapa de cores por TÍTULO
     const titleColorMap = {
       "Representação Integral": "#90EE90",       // Verde claro
       "Representação Extraordinária": "#DDA0DD", // Roxo claro
       "Entidade Extinta": "#F08080"              // Vermelho claro
     };
-    
+
     // 2. Mapa de cores por TEXTO específico (Fundo e Fonte)
     const textConfigMap = {
-        'DE 2026': { bg: '#FF7F50', color: '' }//,       // Fundo Coral, sem alterar a cor da fonte
-        //'|||':     { bg: '#000000', color: '#FFFFFF' }, // Fundo Preto, fonte Branca
-        //'INTIMADO(S) / CITADO(S)': { bg: '#000000', color: '#FFFFFF' } // Fundo Preto, fonte Branca
-        
+        'DE 2026': { bg: '#FF7F50', color: '' }
     };
-    
-    /**
-     * Aplica cores personalizadas às tags <mark> dentro da tabela
-     */
+
     function aplicarCoresMark() {
-        // Seleciona apenas as tags <mark> dentro da tabela para melhor performance
         document.querySelectorAll('#tabela mark').forEach(mark => {
             const textContent = mark.innerText.trim();
-            
-            // 4. Verifica o texto primeiro no mapa de configurações
+
             if (textConfigMap[textContent]) {
                 mark.style.backgroundColor = textConfigMap[textContent].bg;
                 if (textConfigMap[textContent].color) {
                     mark.style.color = textConfigMap[textContent].color;
                 }
-            } 
-            // 5. Se não for, verifica o title
+            }
             else {
                 const titleColor = titleColorMap[mark.title];
                 if (titleColor) {
@@ -197,15 +196,13 @@
             }
         });
     }
-
     // --- FIM DA ADIÇÃO: LÓGICA DE CORES <MARK> ---
-    
+
     // --- NOVA LÓGICA: DESTAQUE TEXTO COLUNA DIÁRIO ---
     function destacarDiariosAtipicos() {
         const table = document.getElementById('tabela');
         if (!table) return;
 
-        // 1. Encontrar o índice da coluna "Diário"
         let diarioIndex = -1;
         const headers = table.querySelectorAll('thead th');
         headers.forEach((th, index) => {
@@ -214,28 +211,22 @@
             }
         });
 
-        // Se não achar a coluna, sai da função
         if (diarioIndex === -1) return;
 
-        // 2. Varrer as linhas visíveis
         const rows = table.querySelectorAll('tbody tr');
         rows.forEach(row => {
             if (row.cells.length > diarioIndex) {
                 const cell = row.cells[diarioIndex];
                 const text = cell.innerText.trim();
 
-                // 3. Verifica se é diferente do padrão
                 if (text !== '[TRT4]' && text !== '[TRT4DJEN]') {
-                    
-                    // Verifica se já não aplicamos (para evitar duplicação em redraws rápidos)
-                    // O DataTables geralmente reseta o HTML, mas é uma segurança.
                     if (!cell.querySelector('.diario-alert')) {
                         cell.innerHTML = `
                             <span class="diario-alert" style="
-                                background-color: #ffcccc; 
-                                color: #8b0000; 
-                                font-weight: bold; 
-                                padding: 2px 4px; 
+                                background-color: #ffcccc;
+                                color: #8b0000;
+                                font-weight: bold;
+                                padding: 2px 4px;
                                 border-radius: 4px;
                             ">
                                 ${text}
@@ -247,29 +238,114 @@
         });
     }
 
+    // --- NOVA LÓGICA: DESTAQUE DO TRECHO "INTIMADO(S) / CITADO(S)" ... "|||" ---
+    const RE_INICIO = /INTIMADO\(S\)\s*\/\s*CITADO\(S\)/i;
+    const TERMINADOR = '|||';
+
+    /**
+     * Envolve o intervalo [start, end) de um nó de texto em um <span> roxo.
+     * Retorna o nó de texto restante (após o trecho destacado) ou null.
+     */
+    function destacarTrechoNode(node, start, end) {
+        const alvo = (start > 0) ? node.splitText(start) : node;
+        const tamanho = end - start;
+        let resto = null;
+        if (tamanho < alvo.nodeValue.length) {
+            resto = alvo.splitText(tamanho);
+        }
+        const span = document.createElement('span');
+        span.className = 'intimado-highlight';
+        alvo.parentNode.replaceChild(span, alvo);
+        span.appendChild(alvo);
+        return resto;
+    }
+
+    function destacarIntimados() {
+        const table = document.getElementById('tabela');
+        if (!table) return;
+
+        table.querySelectorAll('tbody tr').forEach(row => {
+            // Evita reprocessar linhas já tratadas (DataTables recria o HTML a cada draw)
+            if (row.querySelector('.intimado-highlight')) return;
+
+            // Coleta os nós de texto da linha, na ordem do documento
+            const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT, {
+                acceptNode: n => (n.parentNode && n.parentNode.closest('.intimado-highlight'))
+                    ? NodeFilter.FILTER_REJECT
+                    : NodeFilter.FILTER_ACCEPT
+            });
+            const nodes = [];
+            let n;
+            while ((n = walker.nextNode())) nodes.push(n);
+
+            let capturando = false;
+
+            for (let i = 0; i < nodes.length; i++) {
+                let node = nodes[i];
+                if (!node.parentNode) continue;
+
+                while (node) {
+                    const texto = node.nodeValue;
+
+                    if (!capturando) {
+                        const m = texto.match(RE_INICIO);
+                        if (!m) break;
+
+                        const inicio = m.index + m[0].length;
+                        const fim = texto.indexOf(TERMINADOR, inicio);
+
+                        if (fim !== -1) {
+                            // Início e fim no mesmo nó
+                            const resto = destacarTrechoNode(node, inicio, fim);
+                            node = resto; // continua procurando novas ocorrências no restante
+                            continue;
+                        } else {
+                            destacarTrechoNode(node, inicio, texto.length);
+                            capturando = true;
+                            break;
+                        }
+                    } else {
+                        const fim = texto.indexOf(TERMINADOR);
+                        if (fim !== -1) {
+                            const resto = destacarTrechoNode(node, 0, fim);
+                            capturando = false;
+                            node = resto; // pode haver outra ocorrência depois do |||
+                            continue;
+                        } else {
+                            destacarTrechoNode(node, 0, texto.length);
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     // --- Execução ---
     const observer = new MutationObserver(function (mutations, obs) {
         if (document.getElementById('tabela_wrapper')) {
             if (window.myTable && window.myTable.datatable) {
                 const table = window.myTable.datatable;
+
                 table.off('draw.dt'); // Evita múltiplos listeners
                 table.on('draw.dt', function() {
-                    // Funções que rodam a cada redesenho da tabela                    
                     createAndInsertButtons();
                     updateFilterCounts();
-                    updateActiveButtonState(); 
+                    updateActiveButtonState();
                     aplicarCoresMark();
                     destacarDiariosAtipicos();
+                    destacarIntimados();
                 });
 
                 // Execução inicial
                 createAndInsertButtons();
                 updateFilterCounts();
-                updateActiveButtonState(); 
+                updateActiveButtonState();
                 aplicarCoresMark();
                 destacarDiariosAtipicos();
+                destacarIntimados();
             }
-            obs.disconnect(); // Para de observar após encontrar e configurar a tabela
+            obs.disconnect();
         }
     });
 
