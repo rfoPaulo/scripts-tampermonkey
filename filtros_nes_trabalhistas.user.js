@@ -84,11 +84,7 @@
                 padding: 1px 3px;
                 border-radius: 3px;
             }
-            /* Garante que <mark> dentro do trecho não sobreponha o roxo */
-            .intimado-highlight mark {
-                background-color: transparent !important;
-                color: inherit !important;
-            }
+            
         </style>
     `;
 
