@@ -175,7 +175,7 @@
 
     // 2. Mapa de cores por TEXTO específico (Fundo e Fonte)
     const textConfigMap = {
-        'DE 2026': { bg: '#FF7F50', color: '' }
+        'DE 2026': { bg: '#898989', color: '' }
     };
 
     function aplicarCoresMark() {
